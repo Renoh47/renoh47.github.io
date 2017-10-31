@@ -1,4 +1,4 @@
-import java.util.Random;
+
 
 double timeStep;
 double x,y;
@@ -33,7 +33,6 @@ void stopGCode(){
 }
 
 void setup() {
-  rand = new Random();
   emitGCode = false;
   smooth(8);
   background(255);
@@ -108,7 +107,7 @@ void draw()
 
 double addRandomness(double x, double range)
 {
-  return x + rand.nextDouble() * range * 2 - range;
+  return x + Math.random() * range * 2 - range;
 }
 
 
@@ -120,9 +119,9 @@ void sandLine(double x1, double y1, double x2, double y2)
     double x2_m = addRandomness(x2, 2.0);
     double y1_m = addRandomness(y1, 2.0);
     double y2_m = addRandomness(y2, 2.0);
-    int red = 79 + rand.nextInt(50) - 25;
-    int green = 151 + rand.nextInt(50) - 25;
-    int blue = 79 + rand.nextInt(50) - 25;
+    int red = 79 + (int)(Math.random()*50) - 25;
+    int green = 151 + (int)(Math.random()*50) - 25;
+    int blue = 79 + (int)(Math.random()*50) - 25;
     // Generate random points along the line, with different alpha to simulate sand drawing
     float deltaX = (float)(x1_m - x2_m);
     float deltaY = (float)(y1_m - y2_m);
@@ -132,7 +131,7 @@ void sandLine(double x1, double y1, double x2, double y2)
   
     for (int i = 0; i < 20; i++)
     {
-      float x0 = (float)(deltaX * rand.nextFloat() + x1_m);
+      float x0 = (float)(deltaX * math.random() + x1_m);
       float y0 = (float)(deltaY/deltaX * (x0 - x1_m) + y1_m);
       stroke(red, green, blue, 25);
       point((float)x0, (float)y0);
