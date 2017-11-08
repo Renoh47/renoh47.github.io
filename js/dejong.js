@@ -20,7 +20,7 @@ render();
 function resetDrawing()
 {
   var prevFill = context.fillStyle;
-  context.fillStyle = "#FFFFFF";
+  context.fillStyle = "#000000";
   context.fillRect(0,0,width,height);
   context.fillStyle = prevFill;
   //new parameters, restart points
@@ -50,6 +50,8 @@ function render() {
     // get each point and do what we did before with a single point
     var p = points[i];
     var value = getValue(p.x, p.y);
+    context.strokeStyle = "rgb(" + Math.floor(p.vx * 50) + "," + Math.floor(p.vy * 50) + "," + Math.floor(Math.abs(p.vx - p.vy)*50) + ")";
+    //console.log(context.strokeStyle);
     p.vx += Math.cos(value) * 0.3;
     p.vy += Math.sin(value) * 0.3;
 
