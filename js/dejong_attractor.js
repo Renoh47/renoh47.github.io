@@ -7,10 +7,17 @@ var canvas = document.getElementById("canvas"),
 context.lineWidth = 0.1;
 canvas.onclick = function() {resetDrawing()}
 
+//QuickSettings stuff!
+var params = {};
+params["Points: 10^"] = 4;
+var settings = QuickSettings.create();
+settings.setGlobalChangeHandler(resetDrawing);
+settings.bindRange("Points: 10^", 0, 5, 4, 1, params);
+
+
 // random attractor params
-var a,b,c,d
+var a,b,c,d;
 var points = [];
-var numPoints = 1000;
 var renderCount = 0;
 resetDrawing();
 render();
@@ -28,7 +35,7 @@ function resetDrawing()
   c = Math.random() * 4 - 2;
   d = Math.random() * 4 - 2;
   points = [];
-  for (var i = 0; i < numPoints; i++)
+  for (var i = 0; i < Math.pow(10,params["Points: 10^"]); i++)
   {
     points.push({
       x: Math.random()*Math.PI,
@@ -51,7 +58,7 @@ function render() {
 
     //context.strokeStyle = "rgb(" + Math.floor(p.vx * 50) + "," + Math.floor(p.vy * 50) + "," + Math.floor(Math.abs(p.vx - p.vy)*50) + ")";
     //Draw single pixel at location
-    if (renderCount > 2) //Avoid drawing first random points
+    if (renderCount > 1) //Avoid drawing first random points
     {
       context.fillRect(p.x * width/4 + width/2, p.y * height/4 + height/2, .5, .5);
     }
