@@ -18,7 +18,7 @@ render();
 function resetDrawing()
 {
   var prevFill = context.fillStyle;
-  context.fillStyle = "#FFFFFF";
+  context.fillStyle = "#000000";
   context.fillRect(0,0,width,height);
   context.fillStyle = prevFill;
   //new parameters, restart points
@@ -46,6 +46,7 @@ function render() {
     p.vx += Math.cos(value) * 0.3;
     p.vy += Math.sin(value) * 0.3;
 
+    context.strokeStyle = "rgb(" + Math.floor(p.vx * 50) + "," + Math.floor(p.vy * 50) + "," + Math.floor(Math.abs(p.vx / p.vy)*50) + ")";
     // move to current position
     context.beginPath();
     context.moveTo(p.x, p.y);
