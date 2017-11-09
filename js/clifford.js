@@ -62,10 +62,10 @@ function render() {
     p.vy *= 0.99;
 
     // wrap around edges of screen
-    if (p.x > width) p.x = 0;
-    if (p.y > height) p.y = 0;
-    if (p.x < 0) p.x = width;
-    if (p.y < 0) p.y = height;
+    // if (p.x > width) p.x = 0;
+    // if (p.y > height) p.y = 0;
+    // if (p.x < 0) p.x = width;
+    // if (p.y < 0) p.y = height;
   }
 
   // call this function again in one frame tick
