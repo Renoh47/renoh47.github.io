@@ -8,7 +8,7 @@ context.lineWidth = 0.1;
 canvas.onclick = function() {resetDrawing()}
 
 // random attractor params
-var a,b,c,d
+var a,b,c,d;
 // create points. each aligned to left edge of screen,
 // spread out top to bottom.
 var points = [];
@@ -27,14 +27,51 @@ function resetDrawing()
   c = Math.random() * 4 - 2;
   d = Math.random() * 4 - 2;
   points = [];
-  for (var y = 0; y < height; y += 10) {
-    points.push({
-      x: 0,
-      y: y,
-      vx: 0,
-      vy: 0
-    });
+  choice = Math.floor(Math.random()*4);
+  switch (choice)
+  {
+    case 0:
+      for (var y = 0; y < height; y += 10) {
+        points.push({
+          x: 0,
+          y: y,
+          vx: 0,
+          vy: 0
+        });
+      }
+      break;
+    case 1:
+      for (var x = 0; x < width; x += 10) {
+          points.push({
+            x: x,
+            y: 0,
+            vx: 0,
+            vy: 0
+          });
+        }
+      break;
+    case 2:
+      for (var x = 0; x < width; x += 10) {
+          points.push({
+            x: x,
+            y: height,
+            vx: 0,
+            vy: 0
+          });
+        }
+      break;
+    case 3:
+      for (var y = 0; y < height; y += 10) {
+        points.push({
+          x: width,
+          y: y,
+          vx: 0,
+          vy: 0
+        });
+      }
+      break;      
   }
+  
 }
 
 function render() {
@@ -61,11 +98,6 @@ function render() {
     p.vx *= 0.99;
     p.vy *= 0.99;
 
-    // wrap around edges of screen
-    // if (p.x > width) p.x = 0;
-    // if (p.y > height) p.y = 0;
-    // if (p.x < 0) p.x = width;
-    // if (p.y < 0) p.y = height;
   }
 
   // call this function again in one frame tick

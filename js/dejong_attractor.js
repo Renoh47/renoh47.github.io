@@ -34,6 +34,7 @@ var fps, lastTime, delta;
 resetDrawing();
 render();
 
+//Reset the drawing
 function resetDrawing()
 {
   shift = Math.floor(Math.random()*360);
@@ -78,16 +79,19 @@ function render() {
     // Get new coordinates from the attractor
     newCoords = getValue(p.x, p.y);
 
-    //context.strokeStyle = "rgb(" + Math.floor(p.vx * 50) + "," + Math.floor(p.vy * 50) + "," + Math.floor(Math.abs(p.vx - p.vy)*50) + ")";
-    //Draw single pixel at location
-    if (renderCount > 0) {//Avoid drawing first random points
-      //scale the points to to size of the canvas and center
+    if (renderCount > 5) { //Avoid drawing first random points
       drawX = p.x * width/4 + width/2;
       drawY = p.y * height/4 + height/2;
       nextDrawX = newCoords.x * width/4 + width/2;
       nextDrawY = newCoords.y * height/4 + height/2;
       deltaX = Math.abs(drawX - nextDrawX);
       deltaY = Math.abs(drawY - nextDrawY);
+      //Set random color
+      context.fillStyle = getHSLColorString(Math.floor(Math.pow(deltaX, 2) + Math.pow(deltaY, 2))/10000 + shift);
+      //Draw points 
+      context.fillRect(drawX, drawY, .5, .5);
+
+      // Line drawing stuff
       if (params["Draw Lines"]){
         context.strokeStyle = getHSLColorString(p.hsl);
         context.beginPath();
@@ -95,9 +99,10 @@ function render() {
         context.lineTo(nextDrawX, nextDrawY);
         context.stroke();
       }
-      context.fillStyle = getHSLColorString(Math.floor(Math.pow(deltaX, 2) + Math.pow(deltaY, 2))/10000 + shift);
-      context.fillRect(drawX, drawY, .5, .5);
+
+
     }
+    // Update the coords
     p.x = newCoords.x;
     p.y = newCoords.y;
   }
@@ -123,42 +128,6 @@ function getHSLColorString(val) {
   return "hsl(" + hue + ", 50%, 50%)"
 }
 
-function getColor(x, y) {
-  var color = {
-    r: 0,
-    g: 0,
-    b: 0
-  };
-  sum = (x + y)%256;
-
-  if (sum < 64) {
-    color.r = color.g = color.b = 256 - sum;
-  } 
-  else if (sum < 128) {
-    color.r = 0;
-    color.b = sum;
-    color.g = 128 + sum;
-  }
-  else if (sum < 256) {
-    color.r = 0;
-    color.b = 128 - sum;
-    color.g = sum;
-  }
-  else{
-    color.r = color.g = color.b = 255;
-  }
-  /**if (sum < 128){
-    color.r = color.g = color.b = 256 - sum/2;
-  }
-  else {
-      color.r = color.g = color.b = 256 - sum;
-  */
-  return color;
-}
-
-function colorToString(color) {
-  return "rgb(" + color.r + "," + color.g + "," + color.b + ")";
-}
 
 function getValue(x, y) {
   // Peter de Jong attractor
