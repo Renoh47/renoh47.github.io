@@ -11,6 +11,7 @@ params["Points: 10^"] = 2;
 params["Iterations: 10^"] = 2;
 params["Draw FPS"] = false;
 params["Draw Lines"] = false;
+params["Show debug info"] = false;
 var settings = QuickSettings.create();
 settings.bindRange("Points: 10^", 0, 6, 2, 1, params);
 settings.bindRange("Iterations: 10^", 0, 6, 2, 1, params);
@@ -26,13 +27,15 @@ function saveImage()
   w.document.write("<img src='"+img+"' alt='from canvas'/>");
 }
 
-// random attractor params
+// Generator params
 var a,b,c,d;
 var points = [];
 var renderCount = 0;
+var imageData;
+var pixelCountArray;
+
 var fps, lastTime, delta;
 resetDrawing();
-render();
 
 //Reset the drawing
 function resetDrawing()
@@ -40,7 +43,7 @@ function resetDrawing()
   shift = Math.floor(Math.random()*360);
   renderCount = 0;
   var prevFill = context.fillStyle;
-  context.fillStyle = "#000000";
+  context.fillStyle = "#FFFFFF";
   context.fillRect(0,0,width,height);
   context.fillStyle = prevFill;
   //new parameters, restart points
@@ -52,12 +55,12 @@ function resetDrawing()
   for (var i = 0; i < Math.pow(10,params["Points: 10^"]); i++)
   {
     points.push({
-      x: Math.random()*Math.PI,
-      y: Math.random()*Math.PI,
-      hsl: (Math.random()*100 % 6) * 60
+      x: Math.random()*2*Math.PI - Math.PI, // Why Pi? Because magic, that's why.
+      y: Math.random()*2*Math.PI - Math.PI
     });
   }
-
+  imageData = context.getImageData(0, 0, width, height);
+  pixelCountArray = Array(width*height).fill(0);
   context.fillStyle = "#FFFFFF";
   context.strokeStyle = "#999999";
   render();
@@ -65,6 +68,8 @@ function resetDrawing()
 
 function render() {
   if (renderCount > Math.pow(10, params["Iterations: 10^"])){
+    context.putImageData(imageData, 0, 0);
+    console.log("Done Rendering!");
     return;
   }
 
@@ -72,39 +77,51 @@ function render() {
     lastTime = performance.now();
   }
   var drawX,drawY,vel;
-  var p, newCoords;
+  var p, newPoint;
   for (var i = 0; i < points.length; i++) {
     // get each point and do what we did before with a single point
     p = points[i];
-    // Get new coordinates from the attractor
-    newCoords = getValue(p.x, p.y);
-
-    if (renderCount > 5) { //Avoid drawing first random points
-      drawX = p.x * width/4 + width/2;
-      drawY = p.y * height/4 + height/2;
-      nextDrawX = newCoords.x * width/4 + width/2;
-      nextDrawY = newCoords.y * height/4 + height/2;
+    // Get new point from the attractor
+    newPoint = getValue(p.x, p.y);
+    var minRenderCount = 2
+    if (renderCount >= minRenderCount) { //Avoid drawing first random points
+      // Convert from algorithm coords to drawing coords
+      drawX = Math.floor(p.x * width/4 + width/2);
+      drawY = Math.floor(p.y * height/4 + height/2);
+      nextDrawX = newPoint.x * width/4 + width/2;
+      nextDrawY = newPoint.y * height/4 + height/2;
       deltaX = Math.abs(drawX - nextDrawX);
       deltaY = Math.abs(drawY - nextDrawY);
       //Set random color
-      context.fillStyle = getHSLColorString(Math.floor(Math.pow(deltaX, 2) + Math.pow(deltaY, 2))/10000 + shift);
+      //context.fillStyle = getHSLColorString(Math.floor(Math.pow(deltaX, 2) + Math.pow(deltaY, 2))/(10 * width) + shift);
       //Draw points 
-      context.fillRect(drawX, drawY, .5, .5);
+      //context.fillRect(drawX, drawY, .5, .5);
+
+      index = (drawX + drawY * imageData.width) * 4;
+      var rgb,hsl;
+      if (renderCount == minRenderCount){
+        hsl = getHSLColor(Math.floor(Math.pow(deltaX, 2) + Math.pow(deltaY, 2))/(10 * width) + shift);
+        rgb = hslToRgb(hsl.h, hsl.s, hsl.l);
+        imageData.data[index + 0] = rgb[0];
+        imageData.data[index + 1] = rgb[1];
+        imageData.data[index + 2] = rgb[2];
+        imageData.data[index + 3] = 0;
+      }
+      //console.log("Drawing point at " + drawX + "," + drawY);
+      imageData.data[index + 3] += 1;
 
       // Line drawing stuff
-      if (params["Draw Lines"]){
+      if (params["Draw Lines"]) {
         context.strokeStyle = getHSLColorString(p.hsl);
         context.beginPath();
         context.moveTo(drawX, drawY);
         context.lineTo(nextDrawX, nextDrawY);
         context.stroke();
       }
-
-
     }
     // Update the coords
-    p.x = newCoords.x;
-    p.y = newCoords.y;
+    p.x = newPoint.x;
+    p.y = newPoint.y;
   }
   renderCount++;
   if (params["Draw FPS"]){
@@ -117,7 +134,6 @@ function render() {
     context.fillStyle = "#FFFFFF";
     context.fillText("FPS: " + fps, width - 60, 10);
     context.fillStyle = prevFill;
-
   }
   // call this function again in one frame tick
   requestAnimationFrame(render);
@@ -126,6 +142,13 @@ function render() {
 function getHSLColorString(val) {
   hue = (val) %360;
   return "hsl(" + hue + ", 50%, 50%)"
+}
+
+function getHSLColor(val){
+  hue = 1.00 * (val % 360) / 360;
+  sat = .5;
+  light = .5;
+  return {h: hue, s: sat, l: light};
 }
 
 
