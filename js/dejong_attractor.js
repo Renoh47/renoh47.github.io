@@ -17,7 +17,7 @@ else {
 
 //QuickSettings stuff!
 var params = {};
-params["Points: 10^"] = 2;
+params["Points: 10^"] = 5;
 params["Iterations: 10^"] = 2;
 params["Draw FPS"] = false;
 params["Draw Lines"] = false;
@@ -28,7 +28,7 @@ params["Height"] = height;
 var settings = QuickSettings.create();
 settings.bindNumber("Width", 0, 10000, Math.floor(width), 1, params);
 settings.bindNumber("Height", 0, 10000, Math.floor(height), 1, params);
-settings.bindRange("Points: 10^", 0, 6, 2, 1, params);
+settings.bindRange("Points: 10^", 0, 6, 5, 1, params);
 settings.bindRange("Iterations: 10^", 0, 6, 2, 1, params);
 settings.addButton("Save Image", saveImage);
 settings.addButton("Generate New", resetDrawing);
