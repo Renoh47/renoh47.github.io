@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <meta charset="utf-8">
   <title>Peter de Jong Attractor Rendering</title>
   <style type="text/css">
   html, body {
@@ -12,12 +13,14 @@
   }
   </style>
     <!-- Add HSL,RGB,HSV conversion --> 
-  <script src="js/color-conversion-algorithms.js"></script>
+  <script type="text/javascript" src="js/color-conversion-algorithms.js"></script>
   <script type="text/javascript" src="https://cdn.jsdelivr.net/quicksettings/latest/quicksettings.min.js"></script>
+
 
 </head>
 <body>
   <canvas id="canvas"></canvas>
+  <script type="text/javascript" src="js/dejong_worker.js"></script>
   <script type="text/javascript" src="js/dejong_attractor.js"></script>
 
 </body>
