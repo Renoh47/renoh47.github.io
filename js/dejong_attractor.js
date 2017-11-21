@@ -56,10 +56,11 @@ render();
 //Reset the drawing
 function resetDrawing()
 {
-  //apply new settings
+  // Update variables from quicksettings
   width = (canvas.width = params["Width"]);
   height = (canvas.height = params["Height"]);
   numPoints = Math.pow(10,params["Points: 10^"]);
+  maxRenderCount = Math.pow(10, params["Iterations: 10^"]);
   shift = Math.floor(Math.random()*360);
   renderCount = 0;
   var prevFill = context.fillStyle;
@@ -91,8 +92,10 @@ function resetDrawing()
     deJongParams: [a, b, c, d],
     shift: shift
   };
-  // Fire in the hole!
+  // Fire in the hole! 
   preRenderWorker.postMessage(messageObj);
+  // Disable the render button so that we don't accidentally create multiple workers
+  settings.disableControl("Generate New");
 }
 
 function render() {
@@ -118,17 +121,19 @@ function render() {
   requestAnimationFrame(render);
 }
 
+// Receive messages from worker
 preRenderWorker.onmessage = function(e){
   var name = e.data[0];
   switch(name) {
     case "renderProgress":
-      renderPercent = e.data[1]; // Update prerendering progress
+      renderPercent = e.data[1]; // Update prerendering progress bar
       break;
     case "imageData": // We've received imageData! Yay!
       imageData = e.data[1];
-      doneRendering = true;      
+      doneRendering = true;
+      settings.enableControl("Generate New"); // Allow the user to request a new rendering again
       break;
-    default:
+    default: // Something's messed up
       console.log("Received bork message: " + e);
   }
 }
