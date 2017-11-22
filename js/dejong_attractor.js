@@ -43,7 +43,7 @@ settings.saveInLocalStorage("dejong_render");
 var a,b,c,d;
 var points = [];
 var imageData;
-var pixelCountArray;
+var pixelDataArray;
 var minRenderCount = 1;
 var maxRenderCount = Math.pow(10, params["Iterations: 10^"]);
 var doneRendering = false;
@@ -66,7 +66,7 @@ function resetDrawing()
   shift = Math.floor(Math.random()*360);
   renderCount = 0;
   var prevFill = context.fillStyle;
-  context.fillStyle = "#FFFFFF";
+  context.fillStyle = "#000000";
   context.fillRect(0,0,width,height);
   context.fillStyle = prevFill;
   doneRendering = false;
@@ -77,9 +77,6 @@ function resetDrawing()
   d = Math.random() * 4 - 2;
   points = [];
   imageData = context.getImageData(0, 0, width, height);
-  imageData.data.fill(0);
-  pixelCountArray = Array(width*height).fill(0);
-
   // Use a web worker to do the rendering so that we still have responsive interfaces!
   // Build a message object to send
   var messageObj = {
@@ -88,7 +85,7 @@ function resetDrawing()
     minRenderCount: minRenderCount,
     maxRenderCount: maxRenderCount,
     imageData: imageData,
-    pixelCountArray: pixelCountArray,
+    pixelDataArray: pixelDataArray,
     points: points,
     numPoints: numPoints,
     deJongParams: [a, b, c, d],

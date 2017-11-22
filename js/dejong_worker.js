@@ -11,13 +11,14 @@ onmessage = function(e){
       y: Math.random()*4 - 2,
     });
   }
+  pixelDataArray = Array(params.width*params.height*4).fill(0);
   imageData = prerender(params.width, params.height, params.minRenderCount, params.maxRenderCount, 
-    params.imageData, params.pixelCountArray, params.points, params.deJongParams, params.shift);
+    params.imageData, pixelDataArray, params.points, params.deJongParams, params.shift);
   console.log("Posting message back to main.");
   postMessage(["imageData", imageData]);
 }
 
-function prerender(width, height, minRenderCount, maxRenderCount, imageData, pixelCountArray, points, deJongParams, shift) {
+function prerender(width, height, minRenderCount, maxRenderCount, imageData, pixelDataArray, points, deJongParams, shift) {
   for (renderCount = 0; renderCount <= maxRenderCount; renderCount++) {
     var donePercentage = Math.floor((renderCount / maxRenderCount) * 100);
     console.log("Rendering: " + donePercentage);
@@ -39,27 +40,88 @@ function prerender(width, height, minRenderCount, maxRenderCount, imageData, pix
         deltaX = Math.abs(drawX - nextDrawX);
         deltaY = Math.abs(drawY - nextDrawY);
         index = (drawX + drawY * imageData.width) * 4;
-
-        if (pixelCountArray[index/4] != 1) {
+        // If we haven't set a color at this location, set it.  
+        if (pixelDataArray[index + 3] == 0) {
           var rgb,hsl;
           hsl = getHSLColor(Math.sqrt(Math.pow(deltaX, 2) + Math.pow(deltaY, 2))/(width/100) + shift);
           rgb = hslToRgb(hsl.h, hsl.s, hsl.l);
-          imageData.data[index + 0] = rgb[0];
-          imageData.data[index + 1] = rgb[1];
-          imageData.data[index + 2] = rgb[2];
-          pixelCountArray[index/4] = 1;
+          pixelDataArray[index + 0] = rgb[0];
+          pixelDataArray[index + 1] = rgb[1];
+          pixelDataArray[index + 2] = rgb[2];
+          pixelDataArray[index + 3] = 1;
         }
-        imageData.data[index + 3] += 1;
-
+        pixelDataArray[index + 3] += 1; //Increase seen count
       }
       // Update the coords
       p.x = newPoint.x;
       p.y = newPoint.y;
     }
   }
+
+  imageData = convertDataToImage(pixelDataArray, imageData);
   console.log("Done Rendering.");
   doneRendering = true;
   return imageData;
+}
+
+function convertDataToImage(pixelDataArray, imageData) {
+  var maxCount = 0;
+  console.log("Attempting to find largest alpha value");
+  for (var i = 3; i < pixelDataArray.length; i += 4) {
+    if (pixelDataArray[i] > maxCount)
+    {
+      maxCount = pixelDataArray[i];
+    }
+  }
+  console.log("Max count: " + maxCount);
+  //logarithmic scaling of alpha values
+  // output: alpha = a exp (bx)
+  //b = log (y1/y2) / (x1-x2)
+  //a = y1 / exp bx1
+  // x2,y2 = (1,1), x1,y1 = (maxCount, 255)
+  var b = Math.log(255/1) / (maxCount - 1);
+  var a = 255 / (Math.exp(b*maxCount));
+  for (var index = 0; index < pixelDataArray.length; index += 4) {
+    if (pixelDataArray[index + 3] > 0) { //there's data here! Let's composite the pixel with the background
+      alpha = Math.min(255, pixelDataArray[index + 3]); // a * Math.exp(b * pixelDataArray[index + 3]); // Map linear to log scale 
+      var src = [ pixelDataArray[index], pixelDataArray[index + 1], pixelDataArray[index + 2], alpha ];
+      var dst = [ imageData.data[index], imageData.data[index + 1], imageData.data[index + 2], imageData.data[index + 3] ];
+      // Get blended color
+      var blend = alphaBlend(src, dst);
+      // Then set the imageData with the new blended color. 
+      imageData.data[index + 0] = blend[0]; //r
+      imageData.data[index + 1] = blend[1]; //b
+      imageData.data[index + 2] = blend[2]; //g
+      imageData.data[index + 3] = blend[3]; //a
+    }
+  }
+  return imageData;
+}
+
+function alphaBlend(src, dst)
+{
+  colorIntToFloat(src);
+  colorIntToFloat(dst);
+  var out = [0, 0, 0, 0]; //r,g,b,a
+  out[3] = 1.0;
+  out[0] = src[0] * src[3] + dst[0] * (1 - src[3]);
+  out[1] = src[1] * src[3] + dst[1] * (1 - src[3]);
+  out[2] = src[2] * src[3] + dst[2] * (1 - src[3]);
+  colorFloatToInt(out);
+  return out;
+}
+
+// Maps 0-255 to 0-1 (float)
+function colorIntToFloat(color) {
+  for (var index = 0; index < color.length; index++) {
+    color[index] /= 255.0;
+  }
+}
+
+function colorFloatToInt(color) {
+  for (var index = 0; index < color.length; index++) {
+    color[index] = Math.floor(color[index]*255);
+  }
 }
 
 // Maybe these should be pulled out and put in the main file and passed. IDK
