@@ -42,7 +42,7 @@ function prerender(width, height, minRenderCount, maxRenderCount, imageData, pix
 
         if (pixelCountArray[index/4] != 1) {
           var rgb,hsl;
-          hsl = getHSLColor(Math.floor(Math.pow(deltaX, 2) + Math.pow(deltaY, 2))/(10 * width) + shift);
+          hsl = getHSLColor(Math.sqrt(Math.pow(deltaX, 2) + Math.pow(deltaY, 2))/(width/100) + shift);
           rgb = hslToRgb(hsl.h, hsl.s, hsl.l);
           imageData.data[index + 0] = rgb[0];
           imageData.data[index + 1] = rgb[1];

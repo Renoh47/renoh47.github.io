@@ -56,6 +56,8 @@ render();
 //Reset the drawing
 function resetDrawing()
 {
+  // Disable the render button so that we don't accidentally create multiple workers
+  settings.disableControl("Generate New");
   // Update variables from quicksettings
   width = (canvas.width = params["Width"]);
   height = (canvas.height = params["Height"]);
@@ -94,8 +96,6 @@ function resetDrawing()
   };
   // Fire in the hole! 
   preRenderWorker.postMessage(messageObj);
-  // Disable the render button so that we don't accidentally create multiple workers
-  settings.disableControl("Generate New");
 }
 
 function render() {
