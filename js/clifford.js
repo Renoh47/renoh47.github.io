@@ -7,6 +7,8 @@ var canvas = document.getElementById("canvas"),
 context.lineWidth = 0.1;
 canvas.onclick = function() {resetDrawing()}
 
+var settings = QuickSettings.create();
+
 // random attractor params
 var a,b,c,d;
 // create points. each aligned to left edge of screen,

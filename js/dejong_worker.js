@@ -9,6 +9,7 @@ onmessage = function(e){
     params.points.push({
       x: Math.random()*4 - 2, 
       y: Math.random()*4 - 2,
+      life: 10 // Used to keep track of stuck points. We want to stop iterating the point if it gets stuck
     });
   }
   pixelDataArray = Array(params.width*params.height*4).fill(0);
@@ -19,16 +20,24 @@ onmessage = function(e){
 }
 
 function prerender(width, height, minRenderCount, maxRenderCount, imageData, pixelDataArray, points, deJongParams, shift) {
+  var lastPercentage = 0;
   for (renderCount = 0; renderCount <= maxRenderCount; renderCount++) {
     var donePercentage = Math.floor((renderCount / maxRenderCount) * 100);
-    console.log("Rendering: " + donePercentage);
-    //settings.setValue("Render Progess", renderCount);
-    postMessage(["renderProgress", donePercentage]);
+    // We don't want to spam the same percentage message, so only update when the percentage changes.
+    if (donePercentage > lastPercentage) {
+      console.log("Rendering: " + donePercentage);
+      //settings.setValue("Render Progess", renderCount);
+      postMessage(["renderProgress", donePercentage]);
+      lastPercentage = donePercentage;
+    }
     var drawX,drawY;
     var p, newPoint;
     for (var i = 0; i < points.length; i++) {
       // get each point and do what we did before with a single point
       p = points[i];
+      if (p.life <= 0) {
+        continue;
+      }
       // Get new point from the attractor
       newPoint = attractorFn(p.x, p.y, deJongParams);
       if (renderCount >= minRenderCount) { //Avoid drawing first random points
@@ -51,6 +60,9 @@ function prerender(width, height, minRenderCount, maxRenderCount, imageData, pix
           pixelDataArray[index + 3] = 1;
         }
         pixelDataArray[index + 3] += 1; //Increase seen count
+        if (pixelDataArray[index + 3] >= 255) {
+          p.life -= 1; // If we hit a maxed out pixel, decrease the point's life
+        }
       }
       // Update the coords
       p.x = newPoint.x;

@@ -24,12 +24,14 @@ params["Draw Lines"] = false;
 params["Show debug info"] = false;
 params["Width"] = width;
 params["Height"] = height;
+params["Background Color"] = "#000000"
 
 var settings = QuickSettings.create();
 settings.bindNumber("Width", 0, 10000, Math.floor(width), 1, params);
 settings.bindNumber("Height", 0, 10000, Math.floor(height), 1, params);
 settings.bindRange("Points: 10^", 0, 6, 5, 1, params);
 settings.bindRange("Iterations: 10^", 0, 6, 2, 1, params);
+settings.bindColor("Background Color", "#000000", params);
 settings.addButton("Save Image", saveImage);
 settings.addButton("Generate New", resetDrawing);
 settings.addProgressBar("Render Progess", 100, renderPercent, "percent");
@@ -66,7 +68,7 @@ function resetDrawing()
   shift = Math.floor(Math.random()*360);
   renderCount = 0;
   var prevFill = context.fillStyle;
-  context.fillStyle = "#000000";
+  context.fillStyle = params["Background Color"];
   context.fillRect(0,0,width,height);
   context.fillStyle = prevFill;
   doneRendering = false;
