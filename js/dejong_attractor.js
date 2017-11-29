@@ -52,6 +52,7 @@ var doneRendering = false;
 var numPoints = Math.pow(10,params["Points: 10^"]);
 
 var fps, lastTime, delta;
+var firstTime = true;
 resetDrawing();
 render();
 
@@ -61,16 +62,23 @@ function resetDrawing()
   // Disable the render button so that we don't accidentally create multiple workers
   settings.disableControl("Generate New");
   // Update variables from quicksettings
-  width = (canvas.width = params["Width"]);
-  height = (canvas.height = params["Height"]);
+  //width = (canvas.width = params["Width"]);
+  //height = (canvas.height = params["Height"]);
   numPoints = Math.pow(10,params["Points: 10^"]);
   maxRenderCount = Math.pow(10, params["Iterations: 10^"]);
-  shift = Math.floor(Math.random()*360);
+  
   renderCount = 0;
-  var prevFill = context.fillStyle;
-  context.fillStyle = params["Background Color"];
-  context.fillRect(0,0,width,height);
-  context.fillStyle = prevFill;
+  if (firstTime) {
+    width = (canvas.width = params["Width"]);
+    height = (canvas.height = params["Height"]);
+    var prevFill = context.fillStyle;
+    context.fillStyle = params["Background Color"];
+    context.fillRect(0,0,width,height);
+    context.fillStyle = prevFill;
+    firstTime = false;
+    shift = Math.floor(Math.random()*360);
+  }
+
   doneRendering = false;
   // Get new random params, points
   a = Math.random() * 4 - 2;
