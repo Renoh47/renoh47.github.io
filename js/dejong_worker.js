@@ -36,6 +36,7 @@ function prerender(width, height, minRenderCount, maxRenderCount, imageData, pix
       // get each point and do what we did before with a single point
       p = points[i];
       if (p.life <= 0) {
+        // We don't want to iterate on this point because it's most likely stuck. 
         continue;
       }
       // Get new point from the attractor
@@ -59,9 +60,11 @@ function prerender(width, height, minRenderCount, maxRenderCount, imageData, pix
           pixelDataArray[index + 2] = rgb[2];
           pixelDataArray[index + 3] = 1;
         }
-        pixelDataArray[index + 3] += 1; //Increase seen count
         if (pixelDataArray[index + 3] >= 255) {
           p.life -= 1; // If we hit a maxed out pixel, decrease the point's life
+        }
+        else {
+          pixelDataArray[index + 3] += 1; //Increase seen count
         }
       }
       // Update the coords
@@ -95,7 +98,7 @@ function convertDataToImage(pixelDataArray, imageData) {
   var a = 255 / (Math.exp(b*maxCount));
   for (var index = 0; index < pixelDataArray.length; index += 4) {
     if (pixelDataArray[index + 3] > 0) { //there's data here! Let's composite the pixel with the background
-      alpha = Math.min(255, pixelDataArray[index + 3]); // a * Math.exp(b * pixelDataArray[index + 3]); // Map linear to log scale 
+      alpha = Math.min(255, pixelDataArray[index + 3]); //a * Math.exp(b * pixelDataArray[index + 3]); // // Map linear to log scale 
       var src = [ pixelDataArray[index], pixelDataArray[index + 1], pixelDataArray[index + 2], alpha ];
       var dst = [ imageData.data[index], imageData.data[index + 1], imageData.data[index + 2], imageData.data[index + 3] ];
       // Get blended color
