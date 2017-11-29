@@ -7,7 +7,12 @@ var canvas = document.getElementById("canvas"),
 context.lineWidth = 0.1;
 canvas.onclick = function() {resetDrawing()}
 
+var params = {};
+params["Background Color"] = "#000000";
+params["Colorize"] = true;
 var settings = QuickSettings.create();
+settings.bindColor("Background Color", "#000000", params);
+settings.bindBoolean("Colorize", true, params);
 
 // random attractor params
 var a,b,c,d;
@@ -19,8 +24,11 @@ render();
 
 function resetDrawing()
 {
+  width = (canvas.width = window.innerWidth);
+  height = (canvas.height = window.innerHeight);
+  context.lineWidth = 0.1;
   var prevFill = context.fillStyle;
-  context.fillStyle = "#000000";
+  context.fillStyle = params["Background Color"];
   context.fillRect(0,0,width,height);
   context.fillStyle = prevFill;
   //new parameters, restart points
@@ -84,8 +92,12 @@ function render() {
     var value = getValue(p.x, p.y);
     p.vx += Math.cos(value) * 0.3;
     p.vy += Math.sin(value) * 0.3;
-
-    context.strokeStyle = "rgb(" + Math.floor(p.vx * 50) + "," + Math.floor(p.vy * 50) + "," + Math.floor(Math.abs(p.vx / p.vy)*50) + ")";
+    if (params["Colorize"]) {
+      context.strokeStyle = "rgb(" + Math.floor(p.vx * 50) + "," + Math.floor(p.vy * 50) + "," + Math.floor(Math.abs(p.vx / p.vy)*50) + ")";
+    }
+    else {
+      context.strokeStyle = "#000000";
+    }
     // move to current position
     context.beginPath();
     context.moveTo(p.x, p.y);
