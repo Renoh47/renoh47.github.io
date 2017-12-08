@@ -25,6 +25,7 @@ params["Show debug info"] = false;
 params["Width"] = width;
 params["Height"] = height;
 params["Background Color"] = "#000000"
+params["Clean background on render"] = false;
 
 var settings = QuickSettings.create();
 settings.bindNumber("Width", 0, 10000, Math.floor(width), 1, params);
@@ -34,6 +35,7 @@ settings.bindRange("Iterations: 10^", 0, 6, 2, 1, params);
 settings.bindColor("Background Color", "#000000", params);
 settings.addButton("Save Image", saveImage);
 settings.addButton("Generate New", resetDrawing);
+settings.bindBoolean("Clean background on render", false, params); 
 settings.addProgressBar("Render Progess", 100, renderPercent, "percent");
 settings.bindBoolean("Draw FPS", false, params);
 settings.saveInLocalStorage("dejong_render");
@@ -43,6 +45,8 @@ settings.saveInLocalStorage("dejong_render");
 
 // Generator param globals
 var a,b,c,d;
+a = -3.0;
+b= -2.0;
 var points = [];
 var imageData;
 var pixelDataArray;
@@ -51,6 +55,7 @@ var maxRenderCount = Math.pow(10, params["Iterations: 10^"]);
 var doneRendering = false;
 var numPoints = Math.pow(10,params["Points: 10^"]);
 
+var firstTime = true;
 var fps, lastTime, delta;
 resetDrawing();
 render();
@@ -61,20 +66,27 @@ function resetDrawing()
   // Disable the render button so that we don't accidentally create multiple workers
   settings.disableControl("Generate New");
   // Update variables from quicksettings
-  width = (canvas.width = params["Width"]);
-  height = (canvas.height = params["Height"]);
+  //width = (canvas.width = params["Width"]);
+  //height = (canvas.height = params["Height"]);
   numPoints = Math.pow(10,params["Points: 10^"]);
   maxRenderCount = Math.pow(10, params["Iterations: 10^"]);
-  shift = Math.floor(Math.random()*360);
+  
   renderCount = 0;
-  var prevFill = context.fillStyle;
-  context.fillStyle = params["Background Color"];
-  context.fillRect(0,0,width,height);
-  context.fillStyle = prevFill;
+  if (params["Clean background on render"] || firstTime) {
+    width = (canvas.width = params["Width"]);
+    height = (canvas.height = params["Height"]);
+    var prevFill = context.fillStyle;
+    context.fillStyle = params["Background Color"];
+    context.fillRect(0,0,width,height);
+    context.fillStyle = prevFill;
+    firstTime = false;
+    shift = Math.floor(Math.random()*360);
+  }
+
   doneRendering = false;
   // Get new random params, points
-  a = Math.random() * 4 - 2;
-  b = Math.random() * 4 - 2;
+  a += .01;
+  b += .02;
   c = Math.random() * 4 - 2;
   d = Math.random() * 4 - 2;
   points = [];
@@ -88,10 +100,9 @@ function resetDrawing()
     maxRenderCount: maxRenderCount,
     imageData: imageData,
     pixelDataArray: pixelDataArray,
-    points: points,
     numPoints: numPoints,
     deJongParams: [a, b, c, d],
-    shift: shift
+    shift: shift,
   };
   // Fire in the hole! 
   preRenderWorker.postMessage(messageObj);
@@ -103,6 +114,10 @@ function render() {
   }
   if (doneRendering == true) {
     context.putImageData(imageData, 0, 0);
+    if (a < 3.0) {
+      resetDrawing();
+    }
+    doneRendering = false;
   }
   settings.setValue("Render Progess", renderPercent);
   if (params["Draw FPS"]){

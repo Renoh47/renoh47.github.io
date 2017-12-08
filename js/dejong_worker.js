@@ -1,72 +1,117 @@
 // Web worker for pre-rendering peter de jong attractor
+var pixelDataArray;
+var bufferPx = 0;
 
-
-onmessage = function(e){
+onmessage = function(e) {
   console.log("Message received from main script.");
   console.log("Starting prerender.");
   params = e.data;
+  var points = [];
   for (var i = 0; i < params.numPoints; i++) {
-    params.points.push({
-      x: Math.random()*4 - 2, 
-      y: Math.random()*4 - 2,
+    points.push({
+      x: Math.random() * 4 - 2,
+      y: Math.random() * 4 - 2,
       life: 10 // Used to keep track of stuck points. We want to stop iterating the point if it gets stuck
     });
   }
-  pixelDataArray = Array(params.width*params.height*4).fill(0);
-  imageData = prerender(params.width, params.height, params.minRenderCount, params.maxRenderCount, 
-    params.imageData, pixelDataArray, params.points, params.deJongParams, params.shift);
+  if (!pixelDataArray || pixelDataArray.length != params.width * params.height * 4) {
+    pixelDataArray = Array(params.width * params.height * 4).fill(0);
+  }
+  else {
+    pixelDataArray.fill(0);
+  }
+  imageData = prerender(params.width, params.height, params.minRenderCount, params.maxRenderCount,
+    params.imageData, pixelDataArray, points, params.deJongParams, params.shift);
   console.log("Posting message back to main.");
   postMessage(["imageData", imageData]);
 }
 
+function attractorFn(x, y, vals) {
+  // Peter de Jong attractor
+  // http://paulbourke.net/fractals/peterdejong/
+
+  // attractor gives new x, y for old one.
+  var x1 = Math.sin(vals[0] * y) - Math.cos(vals[2] * x);
+  var y1 = Math.sin(vals[0] * x) - Math.cos(vals[1] * y);
+
+  return {
+    x: x1,
+    y: y1
+  };
+}
+
 function prerender(width, height, minRenderCount, maxRenderCount, imageData, pixelDataArray, points, deJongParams, shift) {
   var lastPercentage = 0;
+  var scaleX = (width/4 - bufferPx);
+  var centerX = width/2;
+  var scaleY = (height/4 - bufferPx);
+  var centerY = height/2;
+  var theta = Math.PI / 4.0;
+  var cosTheta = Math.cos(theta);
+  var sinTheta = Math.sin(theta);
   for (renderCount = 0; renderCount <= maxRenderCount; renderCount++) {
     var donePercentage = Math.floor((renderCount / maxRenderCount) * 100);
     // We don't want to spam the same percentage message, so only update when the percentage changes.
     if (donePercentage > lastPercentage) {
-      console.log("Rendering: " + donePercentage);
+      //console.log("Rendering: " + donePercentage);
       //settings.setValue("Render Progess", renderCount);
       postMessage(["renderProgress", donePercentage]);
       lastPercentage = donePercentage;
     }
-    var drawX,drawY;
+    var activePoints = false; // Are we still rendering any points? 
+    var drawX, drawY;
+    var rotX, rotY;
     var p, newPoint;
-    for (var i = 0; i < points.length; i++) {
+    var pointsLength = points.length // This isn't changing, so cache it to avoid accessing every time
+    for (var i = 0; i < pointsLength; i++) {
       // get each point and do what we did before with a single point
       p = points[i];
       if (p.life <= 0) {
+        // We don't want to iterate on this point because it's most likely stuck. 
         continue;
+      } else {
+        // If this is false after this for loop exits, we never touched any pixels. Stop rendering.
+        activePoints = true;
       }
       // Get new point from the attractor
       newPoint = attractorFn(p.x, p.y, deJongParams);
       if (renderCount >= minRenderCount) { //Avoid drawing first random points
         // Convert from algorithm coords to drawing coords
-        drawX = Math.floor(p.x * width/4 + width/2);
-        drawY = Math.floor(p.y * height/4 + height/2);
-        nextDrawX = Math.floor(newPoint.x * width/4 + width/2);
-        nextDrawY = Math.floor(newPoint.y * height/4 + height/2);
+        rotX = p.x * cosTheta - p.y * sinTheta;
+        rotY = p.x * sinTheta + p.y * cosTheta;
+        drawX = Math.floor(p.x * scaleX + centerX);
+        drawY = Math.floor(p.y * scaleY + centerY);
+
+        nextDrawX = Math.floor(newPoint.x * scaleX + centerX);
+        nextDrawY = Math.floor(newPoint.y * scaleY + centerY);
+
         deltaX = Math.abs(drawX - nextDrawX);
         deltaY = Math.abs(drawY - nextDrawY);
         index = (drawX + drawY * imageData.width) * 4;
         // If we haven't set a color at this location, set it.  
         if (pixelDataArray[index + 3] == 0) {
-          var rgb,hsl;
-          hsl = getHSLColor(Math.sqrt(Math.pow(deltaX, 2) + Math.pow(deltaY, 2))/(width/100) + shift);
+          var rgb, hsl;
+          hsl = getHSLColor(Math.sqrt(Math.pow(deltaX, 2) + Math.pow(deltaY, 2)) / (width / 100) + shift);
           rgb = hslToRgb(hsl.h, hsl.s, hsl.l);
           pixelDataArray[index + 0] = rgb[0];
           pixelDataArray[index + 1] = rgb[1];
           pixelDataArray[index + 2] = rgb[2];
           pixelDataArray[index + 3] = 1;
         }
-        pixelDataArray[index + 3] += 1; //Increase seen count
         if (pixelDataArray[index + 3] >= 255) {
           p.life -= 1; // If we hit a maxed out pixel, decrease the point's life
+        } else {
+          pixelDataArray[index + 3] += 1; //Increase seen count
         }
       }
       // Update the coords
       p.x = newPoint.x;
       p.y = newPoint.y;
+    }
+    if (activePoints == false) {
+      // We didn't touch any points, they are all stuck. We're done rendering.
+      postMessage(["renderProgress", 100]);
+      break;
     }
   }
 
@@ -77,27 +122,27 @@ function prerender(width, height, minRenderCount, maxRenderCount, imageData, pix
 }
 
 function convertDataToImage(pixelDataArray, imageData) {
-  var maxCount = 0;
-  console.log("Attempting to find largest alpha value");
-  for (var i = 3; i < pixelDataArray.length; i += 4) {
-    if (pixelDataArray[i] > maxCount)
-    {
-      maxCount = pixelDataArray[i];
-    }
-  }
-  console.log("Max count: " + maxCount);
-  //logarithmic scaling of alpha values
-  // output: alpha = a exp (bx)
-  //b = log (y1/y2) / (x1-x2)
-  //a = y1 / exp bx1
-  // x2,y2 = (1,1), x1,y1 = (maxCount, 255)
-  var b = Math.log(255/1) / (maxCount - 1);
-  var a = 255 / (Math.exp(b*maxCount));
+  // var maxCount = 0;
+  // console.log("Attempting to find largest alpha value");
+  // for (var i = 3; i < pixelDataArray.length; i += 4) {
+  //   if (pixelDataArray[i] > maxCount)
+  //   {
+  //     maxCount = pixelDataArray[i];
+  //   }
+  // }
+  // console.log("Max count: " + maxCount);
+  // //logarithmic scaling of alpha values
+  // // output: alpha = a exp (bx)
+  // //b = log (y1/y2) / (x1-x2)
+  // //a = y1 / exp bx1
+  // // x2,y2 = (1,1), x1,y1 = (maxCount, 255)
+  // var b = Math.log(255/1) / (maxCount - 1);
+  // var a = 255 / (Math.exp(b*maxCount));
   for (var index = 0; index < pixelDataArray.length; index += 4) {
     if (pixelDataArray[index + 3] > 0) { //there's data here! Let's composite the pixel with the background
-      alpha = Math.min(255, pixelDataArray[index + 3]); // a * Math.exp(b * pixelDataArray[index + 3]); // Map linear to log scale 
-      var src = [ pixelDataArray[index], pixelDataArray[index + 1], pixelDataArray[index + 2], alpha ];
-      var dst = [ imageData.data[index], imageData.data[index + 1], imageData.data[index + 2], imageData.data[index + 3] ];
+      alpha = Math.min(255, pixelDataArray[index + 3]); //a * Math.exp(b * pixelDataArray[index + 3]); // // Map linear to log scale 
+      var src = [pixelDataArray[index], pixelDataArray[index + 1], pixelDataArray[index + 2], alpha];
+      var dst = [imageData.data[index], imageData.data[index + 1], imageData.data[index + 2], imageData.data[index + 3]];
       // Get blended color
       var blend = alphaBlend(src, dst);
       // Then set the imageData with the new blended color. 
@@ -110,8 +155,7 @@ function convertDataToImage(pixelDataArray, imageData) {
   return imageData;
 }
 
-function alphaBlend(src, dst)
-{
+function alphaBlend(src, dst) {
   colorIntToFloat(src);
   colorIntToFloat(dst);
   var out = [0, 0, 0, 0]; //r,g,b,a
@@ -132,34 +176,29 @@ function colorIntToFloat(color) {
 
 function colorFloatToInt(color) {
   for (var index = 0; index < color.length; index++) {
-    color[index] = Math.floor(color[index]*255);
+    color[index] = Math.floor(color[index] * 255);
   }
 }
 
 // Maybe these should be pulled out and put in the main file and passed. IDK
 
 function getHSLColorString(val) {
-  hue = (val) %360;
+  hue = (val) % 360;
   return "hsl(" + hue + ", 50%, 50%)"
 }
 
-function getHSLColor(val){
+function getHSLColor(val) {
   hue = 1.00 * (val % 360) / 360;
   sat = .75;
   light = .5;
-  return {h: hue, s: sat, l: light};
+  return {
+    h: hue,
+    s: sat,
+    l: light
+  };
 }
 
-function attractorFn(x, y, vals) {
-  // Peter de Jong attractor
-  // http://paulbourke.net/fractals/peterdejong/
 
-  // attractor gives new x, y for old one.
-  var x1 = Math.sin(vals[0] * y) - Math.cos(vals[1] * x);
-  var y1 = Math.sin(vals[2] * x) - Math.cos(vals[3] * y);
-
-  return {x: x1, y: y1};
-}
 
 //Not sure why, but it couldn't find this function from color-conversion-algorithms.js, even though that is imported first. idk.
 /**
@@ -182,19 +221,19 @@ function hslToRgb(h, s, l) {
     function hue2rgb(p, q, t) {
       if (t < 0) t += 1;
       if (t > 1) t -= 1;
-      if (t < 1/6) return p + (q - p) * 6 * t;
-      if (t < 1/2) return q;
-      if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+      if (t < 1 / 6) return p + (q - p) * 6 * t;
+      if (t < 1 / 2) return q;
+      if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
       return p;
     }
 
     var q = l < 0.5 ? l * (1 + s) : l + s - l * s;
     var p = 2 * l - q;
 
-    r = hue2rgb(p, q, h + 1/3);
+    r = hue2rgb(p, q, h + 1 / 3);
     g = hue2rgb(p, q, h);
-    b = hue2rgb(p, q, h - 1/3);
+    b = hue2rgb(p, q, h - 1 / 3);
   }
 
-  return [ r * 255, g * 255, b * 255 ];
+  return [r * 255, g * 255, b * 255];
 }
