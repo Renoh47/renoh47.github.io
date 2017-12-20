@@ -1,6 +1,7 @@
 // Web worker for pre-rendering peter de jong attractor
 var pixelDataArray;
-var bufferPx = 0;
+var bufferPx = 10;
+var imageData;
 
 onmessage = function(e) {
   console.log("Message received from main script.");
@@ -14,16 +15,18 @@ onmessage = function(e) {
       life: 10 // Used to keep track of stuck points. We want to stop iterating the point if it gets stuck
     });
   }
+  if (params.imageData != null){
+    imageData = params.imageData;
+  }
   if (!pixelDataArray || pixelDataArray.length != params.width * params.height * 4) {
     pixelDataArray = Array(params.width * params.height * 4).fill(0);
   }
   else {
     pixelDataArray.fill(0);
   }
-  imageData = prerender(params.width, params.height, params.minRenderCount, params.maxRenderCount,
-    params.imageData, pixelDataArray, points, params.deJongParams, params.shift);
+  var newImageData = prerender(params.width, params.height, params.minRenderCount, params.maxRenderCount, pixelDataArray, points, params.deJongParams, params.shift);
   console.log("Posting message back to main.");
-  postMessage(["imageData", imageData]);
+  postMessage(["imageData", newImageData]);
 }
 
 function attractorFn(x, y, vals) {
@@ -31,8 +34,8 @@ function attractorFn(x, y, vals) {
   // http://paulbourke.net/fractals/peterdejong/
 
   // attractor gives new x, y for old one.
-  var x1 = Math.sin(vals[0] * y) - Math.cos(vals[2] * x);
-  var y1 = Math.sin(vals[0] * x) - Math.cos(vals[1] * y);
+  var x1 = Math.sin(vals[0] * y) - Math.cos(vals[1] * x);// + Math.cos(x * y);
+  var y1 = Math.sin(vals[2] * x) - Math.cos(vals[3] * y);// - Math.cos(x * y);
 
   return {
     x: x1,
@@ -40,7 +43,19 @@ function attractorFn(x, y, vals) {
   };
 }
 
-function prerender(width, height, minRenderCount, maxRenderCount, imageData, pixelDataArray, points, deJongParams, shift) {
+function henonPhaseAttractor(x, y, vals) {
+  // Henon phase attractor
+  // http://paulbourke.net/fractals/henonphase/
+  var x1 = x * Math.cos(vals[0]) - (y - Math.pow(x, 2)) * Math.sin(vals[0]);
+  var y1 = x * Math.sin(vals[0]) + (y - Math.pow(x, 2)) * Math.cos(vals[0]);
+
+  return {
+    x: x1,
+    y: y1
+  };
+}
+
+function prerender(width, height, minRenderCount, maxRenderCount, pixelDataArray, points, deJongParams, shift) {
   var lastPercentage = 0;
   var scaleX = (width/4 - bufferPx);
   var centerX = width/2;
@@ -98,10 +113,10 @@ function prerender(width, height, minRenderCount, maxRenderCount, imageData, pix
           pixelDataArray[index + 2] = rgb[2];
           pixelDataArray[index + 3] = 1;
         }
-        if (pixelDataArray[index + 3] >= 255) {
+        if (pixelDataArray[index + 3] >= 128) {
           p.life -= 1; // If we hit a maxed out pixel, decrease the point's life
         } else {
-          pixelDataArray[index + 3] += 1; //Increase seen count
+          pixelDataArray[index + 3] += .5; //Increase seen count
         }
       }
       // Update the coords
@@ -115,13 +130,13 @@ function prerender(width, height, minRenderCount, maxRenderCount, imageData, pix
     }
   }
 
-  imageData = convertDataToImage(pixelDataArray, imageData);
+  var newImageData = convertDataToImage(pixelDataArray, imageData);
   console.log("Done Rendering.");
-  doneRendering = true;
-  return imageData;
+  return newImageData;
 }
 
 function convertDataToImage(pixelDataArray, imageData) {
+  var newImageData = imageData;
   // var maxCount = 0;
   // console.log("Attempting to find largest alpha value");
   // for (var i = 3; i < pixelDataArray.length; i += 4) {
@@ -142,17 +157,17 @@ function convertDataToImage(pixelDataArray, imageData) {
     if (pixelDataArray[index + 3] > 0) { //there's data here! Let's composite the pixel with the background
       alpha = Math.min(255, pixelDataArray[index + 3]); //a * Math.exp(b * pixelDataArray[index + 3]); // // Map linear to log scale 
       var src = [pixelDataArray[index], pixelDataArray[index + 1], pixelDataArray[index + 2], alpha];
-      var dst = [imageData.data[index], imageData.data[index + 1], imageData.data[index + 2], imageData.data[index + 3]];
+      var dst = [newImageData.data[index], newImageData.data[index + 1], newImageData.data[index + 2], newImageData.data[index + 3]];
       // Get blended color
       var blend = alphaBlend(src, dst);
-      // Then set the imageData with the new blended color. 
-      imageData.data[index + 0] = blend[0]; //r
-      imageData.data[index + 1] = blend[1]; //b
-      imageData.data[index + 2] = blend[2]; //g
-      imageData.data[index + 3] = blend[3]; //a
+      // Then set the newImageData with the new blended color. 
+      newImageData.data[index + 0] = blend[0]; //r
+      newImageData.data[index + 1] = blend[1]; //b
+      newImageData.data[index + 2] = blend[2]; //g
+      newImageData.data[index + 3] = blend[3]; //a
     }
   }
-  return imageData;
+  return newImageData;
 }
 
 function alphaBlend(src, dst) {

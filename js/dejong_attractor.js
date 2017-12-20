@@ -45,12 +45,14 @@ settings.saveInLocalStorage("dejong_render");
 
 // Generator param globals
 var a,b,c,d;
-a = -3.0;
-b= -2.0;
+a = Math.random() * 4 - 2;
+b = Math.random() * 4 - 2;
+c = Math.random() * 4 - 2;
+d = Math.random() * 4 - 2;
 var points = [];
 var imageData;
 var pixelDataArray;
-var minRenderCount = 1;
+var minRenderCount = 2;
 var maxRenderCount = Math.pow(10, params["Iterations: 10^"]);
 var doneRendering = false;
 var numPoints = Math.pow(10,params["Points: 10^"]);
@@ -59,6 +61,21 @@ var firstTime = true;
 var fps, lastTime, delta;
 resetDrawing();
 render();
+
+var deJongAttractor = function(x, y, vals) {
+  // Peter de Jong attractor
+  // http://paulbourke.net/fractals/peterdejong/
+
+  // attractor gives new x, y for old one.
+  var x1 = Math.sin(vals[0] * y) - Math.cos(vals[1] * x) + Math.cos(x * y);
+  var y1 = Math.sin(vals[2] * x) - Math.cos(vals[3] * y) - Math.cos(x * y);
+
+  return {
+    x: x1,
+    y: y1
+  };
+}
+
 
 //Reset the drawing
 function resetDrawing()
@@ -71,6 +88,21 @@ function resetDrawing()
   numPoints = Math.pow(10,params["Points: 10^"]);
   maxRenderCount = Math.pow(10, params["Iterations: 10^"]);
   
+  doneRendering = false;
+  // Get new random params, points
+  // a = Math.random() * 4 - 2;
+  // b = Math.random() * 4 - 2;
+  // c = Math.random() * 4 - 2;
+  // d = Math.random() * 4 - 2;
+  a += .01;// Math.random()/100.0;
+  b += .01; //Math.random()/100.0;
+  c += .01; //Math.random()/100.0;
+  d += .01; //Math.random()/100.0;
+  points = [];
+  
+  // Use a web worker to do the rendering so that we still have responsive interfaces!
+  // Build a message object to send
+
   renderCount = 0;
   if (params["Clean background on render"] || firstTime) {
     width = (canvas.width = params["Width"]);
@@ -79,27 +111,20 @@ function resetDrawing()
     context.fillStyle = params["Background Color"];
     context.fillRect(0,0,width,height);
     context.fillStyle = prevFill;
+    imageData = context.getImageData(0, 0, width, height);
     firstTime = false;
     shift = Math.floor(Math.random()*360);
   }
+  else {
+    imageData = null;
+  }
 
-  doneRendering = false;
-  // Get new random params, points
-  a += .01;
-  b += .02;
-  c = Math.random() * 4 - 2;
-  d = Math.random() * 4 - 2;
-  points = [];
-  imageData = context.getImageData(0, 0, width, height);
-  // Use a web worker to do the rendering so that we still have responsive interfaces!
-  // Build a message object to send
   var messageObj = {
     width: width,
     height: height,
     minRenderCount: minRenderCount,
     maxRenderCount: maxRenderCount,
     imageData: imageData,
-    pixelDataArray: pixelDataArray,
     numPoints: numPoints,
     deJongParams: [a, b, c, d],
     shift: shift,
