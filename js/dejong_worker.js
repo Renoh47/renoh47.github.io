@@ -34,8 +34,8 @@ function attractorFn(x, y, vals) {
   // http://paulbourke.net/fractals/peterdejong/
 
   // attractor gives new x, y for old one.
-  var x1 = Math.sin(vals[0] * y) - Math.cos(vals[1] * x);// + Math.cos(x * y);
-  var y1 = Math.sin(vals[2] * x) - Math.cos(vals[3] * y);// - Math.cos(x * y);
+  var x1 = Math.sin(vals[0] * y) - Math.cos(vals[0] * x);// + Math.cos(x * y);
+  var y1 = Math.sin(vals[0] * x) - Math.cos(vals[1] * y);// - Math.cos(x * y);
 
   return {
     x: x1,
@@ -113,10 +113,10 @@ function prerender(width, height, minRenderCount, maxRenderCount, pixelDataArray
           pixelDataArray[index + 2] = rgb[2];
           pixelDataArray[index + 3] = 1;
         }
-        if (pixelDataArray[index + 3] >= 128) {
+        if (pixelDataArray[index + 3] >= 64) {
           p.life -= 1; // If we hit a maxed out pixel, decrease the point's life
         } else {
-          pixelDataArray[index + 3] += .5; //Increase seen count
+          pixelDataArray[index + 3] += .1; //Increase seen count
         }
       }
       // Update the coords
@@ -204,7 +204,7 @@ function getHSLColorString(val) {
 
 function getHSLColor(val) {
   hue = 1.00 * (val % 360) / 360;
-  sat = .75;
+  sat = 1;
   light = .5;
   return {
     h: hue,

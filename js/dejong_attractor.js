@@ -12,7 +12,7 @@ if (window.Worker) {
   preRenderWorker = new Worker('js/dejong_worker.js');
 }
 else {
-  alert("Your browser does not support Web Workers, the GUI may freeze while rendering.")
+  alert("Your browser does not support Web Workers, the GUI will freeze while rendering.")
 }
 
 //QuickSettings stuff!
@@ -34,7 +34,7 @@ settings.bindRange("Points: 10^", 0, 6, 5, 1, params);
 settings.bindRange("Iterations: 10^", 0, 6, 2, 1, params);
 settings.bindColor("Background Color", "#000000", params);
 settings.addButton("Save Image", saveImage);
-settings.addButton("Generate New", resetDrawing);
+settings.addButton("Generate New", manualReset);
 settings.bindBoolean("Clean background on render", false, params); 
 settings.addProgressBar("Render Progess", 100, renderPercent, "percent");
 settings.bindBoolean("Draw FPS", false, params);
@@ -49,6 +49,7 @@ a = Math.random() * 4 - 2;
 b = Math.random() * 4 - 2;
 c = Math.random() * 4 - 2;
 d = Math.random() * 4 - 2;
+var shift = 0;
 var points = [];
 var imageData;
 var pixelDataArray;
@@ -56,10 +57,10 @@ var minRenderCount = 2;
 var maxRenderCount = Math.pow(10, params["Iterations: 10^"]);
 var doneRendering = false;
 var numPoints = Math.pow(10,params["Points: 10^"]);
-
+var manualClear = false;
 var firstTime = true;
 var fps, lastTime, delta;
-resetDrawing();
+resetDrawing(firstTime = true);
 render();
 
 var deJongAttractor = function(x, y, vals) {
@@ -77,11 +78,17 @@ var deJongAttractor = function(x, y, vals) {
 }
 
 
+//Manual drawing reset, triggered by button
+function manualReset(){
+  resetDrawing(firstTime = true);
+  manualClear = true;
+}
+
 //Reset the drawing
-function resetDrawing()
+function resetDrawing(firstTime = false)
 {
   // Disable the render button so that we don't accidentally create multiple workers
-  settings.disableControl("Generate New");
+  //settings.disableControl("Generate New");
   // Update variables from quicksettings
   //width = (canvas.width = params["Width"]);
   //height = (canvas.height = params["Height"]);
@@ -93,11 +100,12 @@ function resetDrawing()
   // a = Math.random() * 4 - 2;
   // b = Math.random() * 4 - 2;
   // c = Math.random() * 4 - 2;
-  // d = Math.random() * 4 - 2;
+   d = Math.random() * 4 - 2;
   a += .01;// Math.random()/100.0;
   b += .01; //Math.random()/100.0;
   c += .01; //Math.random()/100.0;
-  d += .01; //Math.random()/100.0;
+  //d += .01; //Math.random()/100.0; 
+  shift += .5; 
   points = [];
   
   // Use a web worker to do the rendering so that we still have responsive interfaces!
@@ -138,11 +146,17 @@ function render() {
     lastTime = performance.now();
   }
   if (doneRendering == true) {
-    context.putImageData(imageData, 0, 0);
-    if (a < 3.0) {
+    // If we triggered a manual clear, wipe out the existing render. 
+    if (manualClear == true) {
+      manualClear = false;
+      doneRendering = false;
       resetDrawing();
     }
-    doneRendering = false;
+    else {
+      context.putImageData(imageData, 0, 0);
+      resetDrawing();
+      doneRendering = false;
+    }
   }
   settings.setValue("Render Progess", renderPercent);
   if (params["Draw FPS"]){
