@@ -11,7 +11,7 @@ onmessage = function(e) {
     points.push({
       x: Math.random() * 4 - 2,
       y: Math.random() * 4 - 2,
-      life: 10 // Used to keep track of stuck points. We want to stop iterating the point if it gets stuck
+      life: 5 // Used to keep track of stuck points. We want to stop iterating the point if it gets stuck
     });
   }
   if (!pixelDataArray || pixelDataArray.length != params.width * params.height * 4) {
@@ -31,8 +31,8 @@ function attractorFn(x, y, vals) {
   // http://paulbourke.net/fractals/peterdejong/
 
   // attractor gives new x, y for old one.
-  var x1 = Math.sin(vals[0] * y) - Math.cos(vals[2] * x);
-  var y1 = Math.sin(vals[0] * x) - Math.cos(vals[1] * y);
+  var x1 = Math.sin(vals[0] * y) - Math.cos(vals[1] * x);
+  var y1 = Math.sin(vals[2] * x) - Math.cos(vals[3] * y);
 
   return {
     x: x1,
@@ -98,7 +98,7 @@ function prerender(width, height, minRenderCount, maxRenderCount, imageData, pix
           pixelDataArray[index + 2] = rgb[2];
           pixelDataArray[index + 3] = 1;
         }
-        if (pixelDataArray[index + 3] >= 255) {
+        if (pixelDataArray[index + 3] >= 2048) {
           p.life -= 1; // If we hit a maxed out pixel, decrease the point's life
         } else {
           pixelDataArray[index + 3] += 1; //Increase seen count
@@ -122,25 +122,25 @@ function prerender(width, height, minRenderCount, maxRenderCount, imageData, pix
 }
 
 function convertDataToImage(pixelDataArray, imageData) {
-  // var maxCount = 0;
-  // console.log("Attempting to find largest alpha value");
-  // for (var i = 3; i < pixelDataArray.length; i += 4) {
-  //   if (pixelDataArray[i] > maxCount)
-  //   {
-  //     maxCount = pixelDataArray[i];
-  //   }
-  // }
-  // console.log("Max count: " + maxCount);
-  // //logarithmic scaling of alpha values
-  // // output: alpha = a exp (bx)
-  // //b = log (y1/y2) / (x1-x2)
-  // //a = y1 / exp bx1
-  // // x2,y2 = (1,1), x1,y1 = (maxCount, 255)
-  // var b = Math.log(255/1) / (maxCount - 1);
-  // var a = 255 / (Math.exp(b*maxCount));
+  var maxCount = 0;
+  console.log("Attempting to find largest alpha value");
+  for (var i = 3; i < pixelDataArray.length; i += 4) {
+    if (pixelDataArray[i] > maxCount)
+    {
+      maxCount = pixelDataArray[i];
+    }
+  }
+  console.log("Max count: " + maxCount);
+  //logarithmic scaling of alpha values
+  // output: alpha = a exp (bx)
+  //b = log (y1/y2) / (x1-x2)
+  //a = y1 / exp bx1
+  // x2,y2 = (1,1), x1,y1 = (maxCount, 255)
+  var b = Math.log(255/1) / (maxCount - 1);
+  var a = 255 / (Math.exp(b*maxCount));
   for (var index = 0; index < pixelDataArray.length; index += 4) {
     if (pixelDataArray[index + 3] > 0) { //there's data here! Let's composite the pixel with the background
-      alpha = Math.min(255, pixelDataArray[index + 3]); //a * Math.exp(b * pixelDataArray[index + 3]); // // Map linear to log scale 
+      alpha = /*Math.min(255, pixelDataArray[index + 3]);*/ a * Math.exp(b * pixelDataArray[index + 3]); // // Map linear to log scale 
       var src = [pixelDataArray[index], pixelDataArray[index + 1], pixelDataArray[index + 2], alpha];
       var dst = [imageData.data[index], imageData.data[index + 1], imageData.data[index + 2], imageData.data[index + 3]];
       // Get blended color

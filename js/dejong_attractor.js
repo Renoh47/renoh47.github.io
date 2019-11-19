@@ -26,11 +26,17 @@ params["Width"] = width;
 params["Height"] = height;
 params["Background Color"] = "#000000"
 params["Clean background on render"] = false;
+var genParams = {};
+genParams["a"] = null;
+genParams["b"] = null;
+genParams["c"] = null;
+genParams["d"] = null;
+var showAdvanced = false;
 
-var settings = QuickSettings.create();
+var settings = QuickSettings.create(0, 0, "Render Settings");
 settings.bindNumber("Width", 0, 10000, Math.floor(width), 1, params);
 settings.bindNumber("Height", 0, 10000, Math.floor(height), 1, params);
-settings.bindRange("Points: 10^", 0, 6, 5, 1, params);
+settings.bindRange("Points: 10^", 0, 7, 5, 1, params);
 settings.bindRange("Iterations: 10^", 0, 6, 2, 1, params);
 settings.bindColor("Background Color", "#000000", params);
 settings.addButton("Save Image", saveImage);
@@ -40,20 +46,23 @@ settings.addProgressBar("Render Progess", 100, renderPercent, "percent");
 settings.bindBoolean("Draw FPS", false, params);
 settings.saveInLocalStorage("dejong_render");
 
-
-
+var advSettings = QuickSettings.create(225, 0, "Advanced Settings");
+advSettings.bindNumber("a", -5, 5, 1.641, .001, genParams);
+advSettings.bindNumber("b", -5, 5, 1.902, .001, genParams);
+advSettings.bindNumber("c", -5, 5, 0.316, .001, genParams);
+advSettings.bindNumber("d", -5, 5, 1.525, .001, genParams);
+advSettings.addButton("Randomize Parameters", randomizeParams);
+advSettings.saveInLocalStorage("advanced_settings");
 
 // Generator param globals
 var a,b,c,d;
-a = -3.0;
-b= -2.0;
 var points = [];
 var imageData;
 var pixelDataArray;
 var minRenderCount = 1;
 var maxRenderCount = Math.pow(10, params["Iterations: 10^"]);
 var doneRendering = false;
-var numPoints = Math.pow(10,params["Points: 10^"]);
+var numPoints = Math.pow(10, params["Points: 10^"]);
 
 var firstTime = true;
 var fps, lastTime, delta;
@@ -84,13 +93,13 @@ function resetDrawing()
   }
 
   doneRendering = false;
-  // Get new random params, points
-  a += .01;
-  b += .02;
-  c = Math.random() * 4 - 2;
-  d = Math.random() * 4 - 2;
+  // Get new random points
   points = [];
   imageData = context.getImageData(0, 0, width, height);
+  a = advSettings.getValue("a");
+  b = advSettings.getValue("b");
+  c = advSettings.getValue("c");
+  d = advSettings.getValue("d");
   // Use a web worker to do the rendering so that we still have responsive interfaces!
   // Build a message object to send
   var messageObj = {
@@ -114,9 +123,9 @@ function render() {
   }
   if (doneRendering == true) {
     context.putImageData(imageData, 0, 0);
-    if (a < 3.0) {
-      resetDrawing();
-    }
+    //if (a < 3.0) {
+    //  resetDrawing();
+    //}
     doneRendering = false;
   }
   settings.setValue("Render Progess", renderPercent);
@@ -157,4 +166,16 @@ function saveImage()
   var img = canvas.toDataURL("image/png");
   var w=window.open('about:blank','image from canvas');
   w.document.write("<img src='"+img+"' alt='from canvas'/>");
+}
+
+function randomizeParams(){
+  advSettings.setValue("a", Number((Math.random() * 10 - 5.0).toFixed(3)));
+  advSettings.setValue("b", Number((Math.random() * 10 - 5.0).toFixed(3)));
+  advSettings.setValue("c", Number((Math.random() * 10 - 5.0).toFixed(3)));
+  advSettings.setValue("d", Number((Math.random() * 10 - 5.0).toFixed(3)));
+}
+
+// Ugh. See https://www.jacklmoore.com/notes/rounding-in-javascript/ for why this is necessary
+function round(value, decimals) {
+  return Number(Math.round(value+'e'+decimals)+'e-'+decimals);
 }
